@@ -83,6 +83,119 @@ body::before {
   }
 }
 
+.ambient-assets {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient-asset {
+  position: absolute;
+  display: block;
+  color: var(--accent-purple-light);
+  opacity: 0.12;
+  will-change: transform;
+}
+
+.asset-frame {
+  top: 16%;
+  left: 4%;
+  width: 116px;
+  height: 78px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  transform: rotate(-12deg);
+  animation: asset-drift-one 26s ease-in-out infinite alternate;
+}
+
+.asset-frame::before,
+.asset-frame::after {
+  content: '';
+  position: absolute;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+}
+
+.asset-frame::before {
+  inset: 12px;
+  opacity: 0.7;
+}
+
+.asset-frame::after {
+  width: 8px;
+  height: 8px;
+  top: 8px;
+  right: 8px;
+  border-radius: 50%;
+}
+
+.asset-play {
+  top: 64%;
+  right: 7%;
+  width: 58px;
+  height: 58px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  transform: rotate(10deg);
+  animation: asset-drift-two 32s ease-in-out infinite alternate;
+}
+
+.asset-play::before {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: 22px;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-left: 15px solid currentColor;
+}
+
+.asset-wave {
+  top: 42%;
+  left: 76%;
+  width: 150px;
+  height: 34px;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-18deg);
+  background: repeating-linear-gradient(90deg, transparent 0 7px, currentColor 8px 9px, transparent 10px 15px);
+  mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+  animation: asset-drift-three 24s ease-in-out infinite alternate;
+}
+
+.asset-bracket {
+  top: 78%;
+  left: 22%;
+  width: 42px;
+  height: 42px;
+  border-left: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(22deg);
+  animation: asset-drift-four 30s ease-in-out infinite alternate;
+}
+
+@keyframes asset-drift-one {
+  0% { transform: translate3d(-12px, 10px, 0) rotate(-12deg); }
+  100% { transform: translate3d(42px, -24px, 0) rotate(-4deg); }
+}
+
+@keyframes asset-drift-two {
+  0% { transform: translate3d(18px, -12px, 0) rotate(10deg); }
+  100% { transform: translate3d(-34px, 24px, 0) rotate(-8deg); }
+}
+
+@keyframes asset-drift-three {
+  0% { transform: translate3d(0, 18px, 0) rotate(-18deg); }
+  100% { transform: translate3d(-58px, -30px, 0) rotate(-8deg); }
+}
+
+@keyframes asset-drift-four {
+  0% { transform: translate3d(8px, 0, 0) rotate(22deg); }
+  100% { transform: translate3d(42px, -36px, 0) rotate(48deg); }
+}
+
 .container {
   width: 100%;
   max-width: 1240px;
@@ -133,6 +246,7 @@ header::before {
 .title-area h1 span {
   color: var(--accent-purple-bright);
   background: linear-gradient(135deg, #c084fc 0%, #9d4edd 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -626,6 +740,10 @@ footer strong {
   body::before {
     animation: none;
   }
+
+  .ambient-asset {
+    animation: none;
+  }
 }
 </style>
 </head>
@@ -698,8 +816,17 @@ footer strong {
     return h('section', { className: 'section-block' }, h(SectionHeader, { number, title }), children);
   }
 
+  function AmbientAssets() {
+    return h('div', { className: 'ambient-assets', 'aria-hidden': 'true' },
+      h('span', { className: 'ambient-asset asset-frame' }),
+      h('span', { className: 'ambient-asset asset-play' }),
+      h('span', { className: 'ambient-asset asset-wave' }),
+      h('span', { className: 'ambient-asset asset-bracket' })
+    );
+  }
+
   function App() {
-    return h('main', { className: 'container' },
+    return h(React.Fragment, null, h(AmbientAssets), h('main', { className: 'container' },
       h('header', null, h('div', { className: 'header-top' }, h('div', { className: 'title-area' }, h('h1', null, 'Fluxo de ', h('span', null, 'Produção de Mídia')), h('p', null, 'Mapeamento, Processamento, Fluxo de Edição e Distribuição de Anúncios')), h('div', { className: 'meta-badges' }, h('span', { className: 'badge' }, 'Workflow 2026'), h('span', { className: 'badge' }, 'Mídia & ADS')))),
       h(Section, { number: '01', title: 'Macrofluxo de Processamento' }, h('div', { className: 'grid-5' }, macroSteps.map(([title, items], index) => h(Card, { key: title, title, items, step: String(index + 1).padStart(2, '0') })))),
       h(Section, { number: '02', title: 'Mineração & Catalogação' }, h('div', { className: 'grid-4' }, catalogCards.map(([title, items]) => h(Card, { key: title, title, items })))),
@@ -707,6 +834,7 @@ footer strong {
       h(Section, { number: '04', title: 'Fluxo Vídeos Grandes' }, h(Pipeline, { nodes: largeVideoFlow })),
       h(Section, { number: '05', title: 'Fluxo de Edição' }, h(Pipeline, { nodes: editingFlow })),
       h('footer', null, h('p', null, 'Playbook de Anúncios & Processos de Vídeo • ', h('strong', null, 'Documentação Interna de Performance')))
+    )
     );
   }
 
