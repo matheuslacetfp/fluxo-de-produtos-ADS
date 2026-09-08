@@ -344,6 +344,7 @@ header::before {
   position: relative;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
 }
 
 .card:hover {
@@ -376,6 +377,131 @@ header::before {
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.card-summary {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin-top: 0.65rem;
+}
+
+.card-expand-hint {
+  color: var(--accent-purple-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-top: auto;
+  padding-top: 1rem;
+  text-transform: uppercase;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(3, 3, 8, 0.78);
+  backdrop-filter: blur(8px);
+  animation: modal-fade-in 0.2s ease-out both;
+}
+
+.card-modal {
+  width: min(100%, 620px);
+  max-height: min(720px, calc(100vh - 2rem));
+  overflow-y: auto;
+  background: linear-gradient(145deg, rgba(30, 30, 44, 0.98), rgba(18, 18, 24, 0.98));
+  border: 1px solid var(--accent-purple-border);
+  border-radius: 16px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55), 0 0 40px var(--accent-purple-glow);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  position: relative;
+  animation: modal-rise 0.25s ease-out both;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.modal-close:hover {
+  border-color: var(--accent-purple-bright);
+  color: var(--text-primary);
+  transform: rotate(90deg);
+}
+
+.modal-eyebrow {
+  color: var(--accent-purple-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.modal-title {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.15;
+  margin: 0.4rem 3rem 1.25rem 0;
+}
+
+.modal-copy {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.modal-details {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.5rem;
+}
+
+.modal-detail {
+  background: var(--accent-purple-soft);
+  border: 1px solid var(--accent-purple-border);
+  border-radius: 8px;
+  padding: 0.9rem;
+}
+
+.modal-detail strong {
+  color: var(--accent-purple-light);
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+.modal-detail span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Bullet Lists */
@@ -726,6 +852,10 @@ footer strong {
     overflow-wrap: anywhere;
   }
 
+  .modal-details {
+    grid-template-columns: 1fr;
+  }
+
   .step-body-title {
     font-size: 1.05rem;
   }
@@ -744,6 +874,11 @@ footer strong {
   .ambient-asset {
     animation: none;
   }
+
+  .modal-backdrop,
+  .card-modal {
+    animation: none;
+  }
 }
 </style>
 </head>
@@ -752,7 +887,7 @@ footer strong {
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script>
-  const { createElement: h } = React;
+  const { createElement: h, useEffect, useState } = React;
 
   const macroSteps = [
     ['Análise de dados', ['Youtube', 'Brutos drive']],
@@ -768,6 +903,63 @@ footer strong {
     ['Triagem por etapa de funil', ['ToFu', 'MoFu']],
     ['Catalogação na planilha de mineração', ['Planilha de garimpo ↗']]
   ];
+
+  const cardContexts = {
+    'Análise de dados': {
+      summary: 'Encontre sinais de retenção e oportunidades antes de iniciar a produção.',
+      detail: 'Reúne dados do YouTube e os materiais brutos disponíveis para definir quais conteúdos merecem ser processados.',
+      output: 'Prioridades de conteúdo e fontes organizadas',
+      next: 'Ingestão de mídia'
+    },
+    'Ingestão de mídia': {
+      summary: 'Converta arquivos brutos em material pesquisável e pronto para seleção.',
+      detail: 'A transcrição e os cortes iniciais reduzem o tempo gasto para localizar falas, momentos e trechos aproveitáveis.',
+      output: 'Transcrição e cortes preliminares',
+      next: 'Edição de conteúdo'
+    },
+    'Edição de conteúdo': {
+      summary: 'Transforme trechos selecionados em uma narrativa clara para o anúncio.',
+      detail: 'A edição guiada pela transcrição ajuda a manter contexto, ritmo e intenção enquanto elimina partes que não contribuem para a mensagem.',
+      output: 'Montagem com narrativa definida',
+      next: 'Formatação'
+    },
+    'Formatação': {
+      summary: 'Adapte a peça ao formato, à duração e às regras de cada plataforma.',
+      detail: 'Use templates e o playbook de anúncios para garantir que a entrega respeite proporção, identidade e requisitos de mídia.',
+      output: 'Versões prontas para ADS',
+      next: 'Distribuição'
+    },
+    'Distribuição': {
+      summary: 'Organize, nomeie e salve os arquivos para facilitar a operação e a análise.',
+      detail: 'A padronização final evita arquivos perdidos, facilita a colaboração e cria uma base consistente para medir cada anúncio.',
+      output: 'Pacote final identificado e salvo',
+      next: 'Avaliação de performance'
+    },
+    'Mapeamento quantitativo': {
+      summary: 'Use métricas para descobrir quais vídeos e momentos têm maior potencial.',
+      detail: 'Cruze visualizações, retenção e outros sinais do YouTube Analytics para orientar a escolha do material que será minerado.',
+      output: 'Mapa de oportunidades por desempenho',
+      next: 'Mineração Qualitativa'
+    },
+    'Mineração Qualitativa': {
+      summary: 'Leia o conteúdo em profundidade e identifique padrões nas transcrições.',
+      detail: 'O processamento com LLM acelera a busca por argumentos, dores, desejos e frases que podem virar conceitos de anúncio.',
+      output: 'Insights e trechos relevantes',
+      next: 'Triagem por etapa de funil'
+    },
+    'Triagem por etapa de funil': {
+      summary: 'Classifique cada oportunidade conforme o momento do público no funil.',
+      detail: 'Separar ToFu e MoFu ajuda a escolher a promessa, o nível de contexto e a chamada mais adequados para cada peça.',
+      output: 'Oportunidades classificadas por funil',
+      next: 'Catalogação'
+    },
+    'Catalogação na planilha de mineração': {
+      summary: 'Centralize descobertas em uma base que o time consegue consultar e atualizar.',
+      detail: 'A planilha registra origem, etapa, hipótese e referência de cada insight para preservar o contexto até a produção.',
+      output: 'Backlog de ideias rastreável',
+      next: 'Planejamento de produção'
+    }
+  };
 
   const deliverySteps = [
     ['Youtube', 'Analisar e depurar dados'],
@@ -797,8 +989,61 @@ footer strong {
     return h('ul', { className: 'bullet-list' }, items.map((item) => h('li', { key: item }, link ? h('a', { href: 'https://docs.google.com/spreadsheets/d/1teP2-RDaeuGqxWe9nbAOP-v7tDFPcSDnqdpRuSyXm18/edit?usp=sharing', className: 'link-btn', target: '_blank', rel: 'noopener noreferrer' }, item) : item)));
   }
 
-  function Card({ title, items, step }) {
-    return h('article', { className: 'card' }, step && h('div', { className: 'card-header-step' }, h('span', { className: 'step-tag' }, `Etapa ${step}`)), h('h3', { className: 'card-title' }, title), h(BulletList, { items, link: items[0] === 'Planilha de garimpo ↗' }));
+  function Card({ title, items, step, context, onOpen }) {
+    function handleKeyDown(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onOpen({ title, items, step, context });
+      }
+    }
+
+    return h('article', {
+      className: 'card',
+      tabIndex: 0,
+      role: 'button',
+      'aria-label': `Expandir informações sobre ${title}`,
+      onClick: (event) => {
+        if (!event.target.closest('a')) onOpen({ title, items, step, context });
+      },
+      onKeyDown: handleKeyDown
+    }, step && h('div', { className: 'card-header-step' }, h('span', { className: 'step-tag' }, `Etapa ${step}`)), h('h3', { className: 'card-title' }, title), h('p', { className: 'card-summary' }, context.summary), h(BulletList, { items, link: items[0] === 'Planilha de garimpo ↗' }), h('span', { className: 'card-expand-hint' }, 'Abrir visão detalhada'));
+  }
+
+  function CardModal({ card, onClose }) {
+    useEffect(() => {
+      function handleEscape(event) {
+        if (event.key === 'Escape') onClose();
+      }
+
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }, [onClose]);
+
+    return h(
+      'div',
+      { className: 'modal-backdrop', onClick: onClose },
+      h(
+        'section',
+        {
+          className: 'card-modal',
+          role: 'dialog',
+          'aria-modal': 'true',
+          'aria-labelledby': 'expanded-card-title',
+          onClick: (event) => event.stopPropagation()
+        },
+        h('button', { className: 'modal-close', type: 'button', onClick: onClose, 'aria-label': 'Fechar visão detalhada' }, '×'),
+        card.step && h('div', { className: 'modal-eyebrow' }, `Etapa ${card.step}`),
+        h('h2', { className: 'modal-title', id: 'expanded-card-title' }, card.title),
+        h('p', { className: 'modal-copy' }, card.context.detail),
+        h(
+          'div',
+          { className: 'modal-details' },
+          h('div', { className: 'modal-detail' }, h('strong', null, 'Conteúdo relacionado'), h('span', null, card.items.join(' • '))),
+          h('div', { className: 'modal-detail' }, h('strong', null, 'Entregável'), h('span', null, card.context.output)),
+          h('div', { className: 'modal-detail' }, h('strong', null, 'Próxima etapa'), h('span', null, card.context.next))
+        )
+      )
+    );
   }
 
   function Pipeline({ nodes }) {
@@ -826,15 +1071,17 @@ footer strong {
   }
 
   function App() {
+    const [selectedCard, setSelectedCard] = useState(null);
+
     return h(React.Fragment, null, h(AmbientAssets), h('main', { className: 'container' },
       h('header', null, h('div', { className: 'header-top' }, h('div', { className: 'title-area' }, h('h1', null, 'Fluxo de ', h('span', null, 'Produção de Mídia')), h('p', null, 'Mapeamento, Processamento, Fluxo de Edição e Distribuição de Anúncios')), h('div', { className: 'meta-badges' }, h('span', { className: 'badge' }, 'Workflow 2026'), h('span', { className: 'badge' }, 'Mídia & ADS')))),
-      h(Section, { number: '01', title: 'Macrofluxo de Processamento' }, h('div', { className: 'grid-5' }, macroSteps.map(([title, items], index) => h(Card, { key: title, title, items, step: String(index + 1).padStart(2, '0') })))),
-      h(Section, { number: '02', title: 'Mineração & Catalogação' }, h('div', { className: 'grid-4' }, catalogCards.map(([title, items]) => h(Card, { key: title, title, items })))),
+      h(Section, { number: '01', title: 'Macrofluxo de Processamento' }, h('div', { className: 'grid-5' }, macroSteps.map(([title, items], index) => h(Card, { key: title, title, items, context: cardContexts[title], step: String(index + 1).padStart(2, '0'), onOpen: setSelectedCard })))),
+      h(Section, { number: '02', title: 'Mineração & Catalogação' }, h('div', { className: 'grid-4' }, catalogCards.map(([title, items]) => h(Card, { key: title, title, items, context: cardContexts[title], onOpen: setSelectedCard })))),
       h(Section, { number: '03', title: 'Fluxo de Entrega' }, h('div', { className: 'detailed-flow' }, deliverySteps.map((step, index) => h(DeliveryStep, { key: step[0], step, index })))),
       h(Section, { number: '04', title: 'Fluxo Vídeos Grandes' }, h(Pipeline, { nodes: largeVideoFlow })),
       h(Section, { number: '05', title: 'Fluxo de Edição' }, h(Pipeline, { nodes: editingFlow })),
       h('footer', null, h('p', null, 'Playbook de Anúncios & Processos de Vídeo • ', h('strong', null, 'Documentação Interna de Performance')))
-    )
+    ), selectedCard && h(CardModal, { card: selectedCard, onClose: () => setSelectedCard(null) })
     );
   }
 
